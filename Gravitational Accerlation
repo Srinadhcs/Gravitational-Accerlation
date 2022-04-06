@@ -1,1 +1,98 @@
+import math
+import time
+import matplotlib.pyplot as plt
 
+G = 6.67e-11
+h = 1e-5
+
+# Position: [x, y, z]
+class Particle():
+    def __init__(self, mass, position, velocity = None):
+        self.mass = mass
+        self.position = position
+        self.velocity = velocity
+
+    def __str__(self):
+        return str({"Mass": self.mass, "Position:": self.position})
+
+def gravPotential(pos, particles):
+    phi = 0.0
+    for particle in particles:
+        if (abs(pos[0] - particle.position[0]) > h) and (abs(pos[1] - particle.position[1]) > h) and (abs(pos[2] - particle.position[2]) > h):
+            r = math.sqrt((particle.position[0] - pos[0])**2 + 
+                            (particle.position[1] - pos[1])**2 + 
+                            (particle.position[2] - pos[2])**2)
+            phi -= (G * particle.mass)/r
+
+    return phi
+
+def centralDifferenceGrav3D(f, position, h, i, particles):
+    x1 = position.copy()
+    x2 = position.copy()
+    x1[i] = position[i] - h/2
+    x2[i] = position[i] + h/2
+
+    return (f(x2, particles) - f(x1, particles))/h
+
+if __name__ == "__main__":
+    # Input Format 
+    # Postition and Mass of each particle -  x y z m  
+
+    p_arr = []
+
+    with open("particleSmall.txt", 'r') as file:
+        for line in file:
+            x, y, z, mass = map(float, tuple(line.rstrip().split()))
+            p_arr.append(Particle(mass=mass, position=[x, y, z]))
+
+    # print(p_arr[1])
+
+    position = list(map(float, input("Enter Position to compute Gravitional Acceleration:").split(" ")))
+
+
+    grav_acc  = [centralDifferenceGrav3D(gravPotential, position, h, 0, p_arr),  
+                centralDifferenceGrav3D(gravPotential, position, h, 1, p_arr), 
+                centralDifferenceGrav3D(gravPotential, position, h, 2, p_arr)]
+
+    print("Gravitational Acceleration: ", grav_acc)
+
+    particleLarge = []
+    gravaccLarge = []
+    time_taken = []
+
+    with open("particlesLarge.txt", 'r') as file:
+        for line in file:
+            x, y, z, mass = map(float, tuple(line.rstrip().split()))
+            particleLarge.append(Particle(mass=mass, position=[x, y, z]))
+
+    start = time.time()
+  
+    for i in range(len(particleLarge)):
+        position = particleLarge[i].position
+
+        gravaccLarge.append([centralDifferenceGrav3D(gravPotential, position, 1e-4, 0, particleLarge),  
+                            centralDifferenceGrav3D(gravPotential, position, 1e-4, 1, particleLarge), 
+                            centralDifferenceGrav3D(gravPotential, position, 1e-4, 2, particleLarge)])
+        print(f"Gravitional Acceleration at particle {i}: {gravaccLarge[i]}")
+    
+    end = time.time()
+
+# Only for Verifying O(N^2) Time Complexity:
+    # start = time.time()
+  
+    # for i in range(len(particleLarge)):
+    #     position = particleLarge[i].position
+
+    #     gravaccLarge.append([centralDifferenceGrav3D(gravPotential, position, 1e-4, 0, particleLarge[:i+1]),  
+    #                         centralDifferenceGrav3D(gravPotential, position, 1e-4, 1, particleLarge[:i+1]), 
+    #                         centralDifferenceGrav3D(gravPotential, position, 1e-4, 2, particleLarge[:i+1])])
+    #     time_taken.append(time.time()-start)
+    #     print(f"Gravitional Acceleration at particle {i}: {gravaccLarge[i]}")
+    
+    # end = time.time()
+
+
+    print("Time Taken: ", end-start)
+
+    # plt.plot(list(range(2048)), time_taken)
+    # plt.show()
